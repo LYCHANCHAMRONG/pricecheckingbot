@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Mini App</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Official Telegram WebApp script -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            color-scheme: light dark; /* Support both light and dark modes */
+        }
+        /* Style based on Telegram theme */
+        body {
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+        .card {
+            background-color: var(--tg-theme-secondary-bg-color, #f3f4f6);
+        }
+        .btn-primary {
+            background-color: var(--tg-theme-button-color, #3b82f6);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+        .btn-secondary {
+             background-color: var(--tg-theme-secondary-bg-color, #e5e7eb);
+             color: var(--tg-theme-text-color, #111827);
+        }
+        .hint-text {
+            color: var(--tg-theme-hint-color, #6b7280);
+        }
+    </style>
+</head>
+<body class="p-4 transition-colors duration-300">
+
+    <div id="app-container" class="max-w-xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <header class="text-center">
+            <h1 class="text-3xl font-bold">My Mini App</h1>
+            <p id="platform-info" class="hint-text text-sm mt-1">Welcome!</p>
+        </header>
+
+        <!-- User Information Card -->
+        <div id="user-card" class="card p-6 rounded-2xl shadow-md hidden">
+            <h2 class="text-xl font-semibold mb-4">User Information</h2>
+            <div id="user-info" class="space-y-2">
+                <!-- User data will be populated here -->
+                <p>Loading user data...</p>
+            </div>
+        </div>
+
+        <!-- Actions Card -->
+        <div class="card p-6 rounded-2xl shadow-md">
+             <h2 class="text-xl font-semibold mb-4">Actions</h2>
+             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button id="main-button-toggle" class="w-full btn-primary p-3 rounded-xl font-semibold transition-transform duration-200 active:scale-95">Show Main Button</button>
+                <button id="send-data-button" class="w-full btn-primary p-3 rounded-xl font-semibold transition-transform duration-200 active:scale-95">Send Data to Bot</button>
+                <button id="haptic-feedback-button" class="w-full btn-secondary p-3 rounded-xl font-semibold transition-transform duration-200 active:scale-95 border border-gray-300 dark:border-gray-600">Trigger Haptic</button>
+                <button id="close-app-button" class="w-full btn-secondary p-3 rounded-xl font-semibold transition-transform duration-200 active:scale-95 border border-gray-300 dark:border-gray-600">Close App</button>
+             </div>
+        </div>
+
+        <!-- Result/Log Display -->
+        <div class="card p-6 rounded-2xl shadow-md">
+            <h2 class="text-xl font-semibold mb-2">Event Log</h2>
+            <div id="result-container" class="hint-text text-sm font-mono h-24 overflow-y-auto bg-gray-100 dark:bg-gray-800 p-2 rounded-lg">
+                App initialized.
+            </div>
+        </div>
+
+        <!-- Error Message for non-Telegram environment -->
+        <div id="error-container" class="hidden text-center p-6 rounded-2xl bg-red-100 text-red-700">
+            <h2 class="text-xl font-bold">Error</h2>
+            <p>This app is designed to run inside the Telegram client. Please open it through a Telegram bot.</p>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tg = window.Telegram.WebApp;
+
+            // DOM Elements
+            const appContainer = document.getElementById('app-container');
+            const errorContainer = document.getElementById('error-container');
+            const userCard = document.getElementById('user-card');
+            const userInfoContainer = document.getElementById('user-info');
+            const resultContainer = document.getElementById('result-container');
+            const platformInfo = document.getElementById('platform-info');
+            
+            const mainButtonToggle = document.getElementById('main-button-toggle');
+            const sendDataButton = document.getElementById('send-data-button');
+            const hapticButton = document.getElementById('haptic-feedback-button');
+            const closeButton = document.getElementById('close-app-button');
+
+            function logEvent(message) {
+                const p = document.createElement('p');
+                p.textContent = `> ${message}`;
+                resultContainer.appendChild(p);
+                resultContainer.scrollTop = resultContainer.scrollHeight; // Auto-scroll to bottom
+            }
+
+            // --- Initialization ---
+            try {
+                tg.ready();
+                logEvent('Telegram.WebApp is ready.');
+                
+                // Check if running in Telegram
+                if (!tg.initDataUnsafe || Object.keys(tg.initDataUnsafe).length === 0) {
+                    appContainer.classList.add('hidden');
+                    errorContainer.classList.remove('hidden');
+                    return;
+                }
+                
+                // Set theme colors
+                tg.setHeaderColor('secondary_bg_color');
+
+                // --- Display User Info ---
+                const user = tg.initDataUnsafe.user;
+                if (user && user.id) {
+                    userCard.classList.remove('hidden');
+                    userInfoContainer.innerHTML = `
+                        <p><strong>User ID:</strong> ${user.id}</p>
+                        <p><strong>First Name:</strong> ${user.first_name}</p>
+                        <p><strong>Last Name:</strong> ${user.last_name || 'N/A'}</p>
+                        <p><strong>Username:</strong> @${user.username || 'N/A'}</p>
+                        <p><strong>Language:</strong> ${user.language_code}</p>
+                    `;
+                    logEvent(`User data loaded for ${user.first_name}.`);
+                } else {
+                     userInfoContainer.innerHTML = `<p>User information is not available.</p>`;
+                     logEvent(`Could not load user data.`);
+                }
+
+                platformInfo.textContent = `Running on ${tg.platform}`;
+                
+                // --- Main Button Logic ---
+                tg.MainButton.setText('MAIN BUTTON');
+                tg.MainButton.onClick(() => {
+                    logEvent('Main Button clicked!');
+                    tg.showAlert(`Hello, ${user.first_name}! You clicked the Main Button.`);
+                });
+                
+                let isMainButtonVisible = false;
+                mainButtonToggle.addEventListener('click', () => {
+                    if (isMainButtonVisible) {
+                        tg.MainButton.hide();
+                        mainButtonToggle.textContent = 'Show Main Button';
+                        logEvent('Main Button hidden.');
+                    } else {
+                        tg.MainButton.show();
+                        mainButtonToggle.textContent = 'Hide Main Button';
+                        logEvent('Main Button shown.');
+                    }
+                    isMainButtonVisible = !isMainButtonVisible;
+                });
+
+                // --- Other Actions ---
+                sendDataButton.addEventListener('click', () => {
+                    const dataToSend = JSON.stringify({
+                        userId: user.id,
+                        timestamp: new Date().toISOString()
+                    });
+                    tg.sendData(dataToSend);
+                    logEvent('Data sent to bot.');
+                    // Note: After sendData, the app will close.
+                });
+                
+                hapticButton.addEventListener('click', () => {
+                    // Triggers haptic feedback. Available styles: 'light', 'medium', 'heavy', 'rigid', 'soft'
+                    tg.HapticFeedback.impactOccurred('medium');
+                    logEvent('Haptic feedback (medium) triggered.');
+                });
+                
+                closeButton.addEventListener('click', () => {
+                    logEvent('Closing app.');
+                    tg.close();
+                });
+
+            } catch (error) {
+                logEvent(`Error: ${error.message}`);
+                appContainer.classList.add('hidden');
+                errorContainer.classList.remove('hidden');
+                errorContainer.querySelector('p').textContent = 'An unexpected error occurred. This app must be run inside Telegram.';
+            }
+        });
+    </script>
+</body>
+</html>
+
